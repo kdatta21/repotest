@@ -124,9 +124,13 @@ public class DynamicSitemapServlet extends SlingAllMethodsServlet {
         xmlWriter.writeEndElement();
 
         // Recursively process child pages
-        for (Page childPage : page.listChildren()) {
-            addPagesToSitemap(childPage, xmlWriter);
-        }
+        Iterator<Page> children = page.listChildren();
+           while (children.hasNext()) {
+               Page childPage = children.next();
+               // Process each child page
+               addPagesToSitemap(childPage, xmlWriter); // Recursive call
+           }
+
     }
 
     /**
