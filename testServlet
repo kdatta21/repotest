@@ -1,0 +1,145 @@
+package com.yourcompany.aem.sitemap;
+
+import com.day.cq.wcm.api.Page;
+import com.day.cq.wcm.api.PageManager;
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.SlingHttpServletResponse;
+import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.servlets.SlingAllMethodsServlet;
+import org.osgi.service.component.annotations.Component;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.servlet.Servlet;
+import javax.servlet.ServletException;
+import javax.xml.stream.XMLOutputFactory;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamWriter;
+import java.io.IOException;
+import java.io.StringWriter;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+
+@Component(service = Servlet.class,
+           property = {
+               "sling.servlet.paths=/bin/dynamic-sitemap",
+               "sling.servlet.methods=GET"
+           })
+public class DynamicSitemapServlet extends SlingAllMethodsServlet {
+
+    private static final Logger LOG = LoggerFactory.getLogger(DynamicSitemapServlet.class);
+
+    @Override
+    protected void doGet(SlingHttpServletRequest request, SlingHttpServletResponse response)
+            throws ServletException, IOException {
+        // Get the ResourceResolver from the request
+        ResourceResolver resourceResolver = request.getResourceResolver();
+
+        // Create a string writer to hold the sitemap XML
+        StringWriter stringWriter = new StringWriter();
+
+        try {
+            // Initialize the XMLStreamWriter
+            XMLOutputFactory factory = XMLOutputFactory.newInstance();
+            XMLStreamWriter xmlWriter = factory.createXMLStreamWriter(stringWriter);
+
+            // Start writing the XML document
+            xmlWriter.writeStartDocument();
+            xmlWriter.writeStartElement("urlset");
+            xmlWriter.writeNamespace("xmlns", "http://www.sitemaps.org/schemas/sitemap/0.9");
+
+            // Query the JCR for all pages under a specific root
+            PageManager pageManager = resourceResolver.adaptTo(PageManager.class);
+            if (pageManager != null) {
+                // Root path to start the sitemap generation, e.g., "/content/your-site"
+                Page rootPage = pageManager.getPage("/content/your-site");
+                if (rootPage != null) {
+                    // Recursively process pages and add them to the sitemap
+                    addPagesToSitemap(rootPage, xmlWriter);
+                }
+            }
+
+            // Close the <urlset> element and document
+            xmlWriter.writeEndElement();  // Close <urlset>
+            xmlWriter.writeEndDocument();
+
+            // Flush the writer
+            xmlWriter.flush();
+
+            // Close the writer
+            xmlWriter.close();
+        } catch (XMLStreamException e) {
+            throw new ServletException("Error generating sitemap XML", e);
+        }
+
+        // Send the response as XML
+        response.setContentType("application/xml");
+        response.getWriter().write(stringWriter.toString());
+    }
+
+    /**
+     * Recursively adds pages to the sitemap.
+     *
+     * @param page      The current page to add.
+     * @param xmlWriter The XMLStreamWriter to write to.
+     */
+    private void addPagesToSitemap(Page page, XMLStreamWriter xmlWriter) throws XMLStreamException {
+        // Get the page path for the <loc> element
+        String pagePath = page.getPath();
+        String pageUrl = "https://www.example.com" + pagePath + ".html";  // Customize the domain as needed
+
+        // Get the last modified date for the <lastmod> element
+        Calendar lastModified = page.getProperties().get("cq:lastModified", Calendar.class);
+        if (lastModified == null) {
+            lastModified = page.getProperties().get("jcr:lastModified", Calendar.class);
+        }
+
+        String lastModDate = formatDate(lastModified);
+
+        // Start the <url> element
+        xmlWriter.writeStartElement("url");
+
+        // Write the <loc> element
+        xmlWriter.writeStartElement("loc");
+        xmlWriter.writeCharacters(pageUrl);
+        xmlWriter.writeEndElement();
+
+        // Write the <lastmod> element if available
+        if (lastModDate != null) {
+            xmlWriter.writeStartElement("lastmod");
+            xmlWriter.writeCharacters(lastModDate);
+            xmlWriter.writeEndElement();
+        }
+
+        // Optionally write <changefreq> and <priority> elements
+        xmlWriter.writeStartElement("changefreq");
+        xmlWriter.writeCharacters("daily");
+        xmlWriter.writeEndElement();
+
+        xmlWriter.writeStartElement("priority");
+        xmlWriter.writeCharacters("0.8");
+        xmlWriter.writeEndElement();
+
+        // Close the <url> element
+        xmlWriter.writeEndElement();
+
+        // Recursively process child pages
+        for (Page childPage : page.listChildren()) {
+            addPagesToSitemap(childPage, xmlWriter);
+        }
+    }
+
+    /**
+     * Formats a Calendar object to the sitemap standard date format (YYYY-MM-DD).
+     *
+     * @param calendar The Calendar object.
+     * @return The formatted date string, or null if the calendar is null.
+     */
+    private String formatDate(Calendar calendar) {
+        if (calendar != null) {
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+            return sdf.format(calendar.getTime());
+        }
+        return null;
+    }
+}
