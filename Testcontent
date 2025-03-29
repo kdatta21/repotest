@@ -1,0 +1,50 @@
+package com.example.core.models;
+
+import com.day.cq.wcm.api.Page;
+import com.day.cq.wcm.api.PageManager;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.models.annotations.DefaultInjectionStrategy;
+import org.apache.sling.models.annotations.Model;
+import org.apache.sling.models.annotations.injectorspecific.Self;
+import org.apache.sling.models.annotations.injectorspecific.ScriptVariable;
+
+import javax.annotation.PostConstruct;
+
+@Model(adaptables = SlingHttpServletRequest.class, defaultInjectionStrategy = DefaultInjectionStrategy.OPTIONAL)
+public class ExperienceFragmentProvider {
+
+    private static final String FOOTER_PROPERTY = "xfFooterPath";
+
+    @Self
+    private SlingHttpServletRequest request;
+
+    @ScriptVariable
+    private PageManager pageManager;
+
+    private String xfFooterPath;
+
+    @PostConstruct
+    protected void init() {
+        Page currentPage = pageManager.getContainingPage(request.getResource());
+        if (currentPage != null) {
+            xfFooterPath = getExperienceFragmentPath(currentPage, FOOTER_PROPERTY);
+        }
+    }
+
+    private String getExperienceFragmentPath(Page page, String property) {
+        while (page != null) {
+            String path = page.getProperties().get(property, String.class);
+            if (StringUtils.isNotBlank(path)) {
+                return path;
+            }
+            page = page.getParent(); // Traverse up to find the root page property
+        }
+        return null;
+    }
+
+    public String getXfFooterPath() {
+        return xfFooterPath;
+    }
+}
