@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jcr:root xmlns:sling="http://sling.apache.org/jcr/sling/1.0" 
+          xmlns:cq="http://www.day.com/jcr/cq/1.0" 
+          xmlns:jcr="http://www.jcp.org/jcr/1.0"
+          jcr:primaryType="nt:unstructured"
+          cq:dialogMode="floating">
+
+    <content jcr:primaryType="nt:unstructured"
+             sling:resourceType="granite/ui/components/coral/foundation/container">
+        <items jcr:primaryType="nt:unstructured">
+
+            <!-- Experience Fragment Configuration Tab -->
+            <xfSettings jcr:primaryType="nt:unstructured"
+                        sling:resourceType="granite/ui/components/coral/foundation/panel"
+                        jcr:title="Experience Fragment Settings">
+                
+                <items jcr:primaryType="nt:unstructured">
+
+                    <!-- Footer Experience Fragment Path -->
+                    <xfFooterPath jcr:primaryType="nt:unstructured"
+                                  sling:resourceType="granite/ui/components/coral/foundation/form/pathfield"
+                                  fieldLabel="Footer Experience Fragment"
+                                  name="./xfFooterPath"
+                                  rootPath="/content/experience-fragments"
+                                  required="false"
+                                  emptyText="Select the Footer Experience Fragment"
+                                  predicate="hierarchy">
+                    </xfFooterPath>
+
+                </items>
+            </xfSettings>
+
+        </items>
+    </content>
+
+</jcr:root>
